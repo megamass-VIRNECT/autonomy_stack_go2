@@ -48,7 +48,6 @@ int feats_down_size = 0;
 int time_log_counter = 0;
 int scan_count = 0;
 int publish_count = 0;
-int map_publish_counter = 0;
 
 int frame_ct = 0;
 double time_update_last = 0.0;
@@ -650,17 +649,14 @@ void map_incremental()
 
 void publish_init_kdtree(rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubLaserCloudFullRes)
 {
-    PointCloudXYZI::Ptr laserCloudInit(new PointCloudXYZI());
+    int size_init_ikdtree = ikdtree.size();
+    PointCloudXYZI::Ptr laserCloudInit(new PointCloudXYZI(size_init_ikdtree, 1));
 
     sensor_msgs::msg::PointCloud2 laserCloudmsg;
     PointVector().swap(ikdtree.PCL_Storage);
     ikdtree.flatten(ikdtree.Root_Node, ikdtree.PCL_Storage, NOT_RECORD);
 
     laserCloudInit->points = ikdtree.PCL_Storage;
-    laserCloudInit->width = laserCloudInit->points.size();
-    laserCloudInit->height = 1;
-    laserCloudInit->is_dense = true;
-
     pcl::toROSMsg(*laserCloudInit, laserCloudmsg);
 
     laserCloudmsg.header.stamp = get_ros_time(lidar_end_time);
@@ -1416,14 +1412,6 @@ int main(int argc, char **argv)
 
         if (scan_pub_en && scan_body_pub_en)
             publish_frame_body(pubLaserCloudFullRes_body);
-
-        // Publish map periodically (every 50 frames)
-        map_publish_counter++;
-        if (map_publish_counter >= 50)
-        {
-            publish_init_kdtree(pubLaserCloudMap);
-            map_publish_counter = 0;
-        }
 
         /*** Debug variables Logging ***/
         if (runtime_pos_log)

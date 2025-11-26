@@ -22,7 +22,7 @@
     <arg name="rviz" value="false"/>
   </include>
 
-  <!-- Disabled for manual control
+  <!-- AUTONOMOUS NAVIGATION ENABLED -->
   <include file="$(find-pkg-share local_planner)/launch/local_planner.launch" >
     <arg name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <arg name="sensorOffsetY" value="$(var sensorOffsetY)" />
@@ -30,11 +30,8 @@
     <arg name="goalX" value="$(var vehicleX)"/>
     <arg name="goalY" value="$(var vehicleY)"/>
   </include>
-  -->
 
-  <!-- Disabled for manual control
   <include file="$(find-pkg-share terrain_analysis)/launch/terrain_analysis.launch" />
-  -->
 
   <!-- <include file="$(find-pkg-share terrain_analysis_ext)/launch/terrain_analysis_ext.launch" >
     <arg name="checkTerrainConn" value="$(var checkTerrainConn)"/>
@@ -51,8 +48,5 @@
   <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubMap" args="0 0 0 0 0 0 /map /camera_init"/>
 
   <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubVehicle" args="0 0 0 0 0 0 /aft_mapped /sensor"/>
-
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="-0.3 0 0 0 0 0 /sensor /vehicle"/>
-
 
 </launch>
