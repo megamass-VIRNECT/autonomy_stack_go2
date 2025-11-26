@@ -163,7 +163,12 @@ void pathHandler(const nav_msgs::msg::Path::ConstSharedPtr pathIn)
 
 void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 {
-  joyTime = nh->now().seconds(); 
+  // Ignore joy messages from RViz waypoint tool
+  if (joy->header.frame_id == "waypoint_tool") {
+    return;
+  }
+
+  joyTime = nh->now().seconds();
   joySpeedRaw = sqrt(joy->axes[3] * joy->axes[3] + joy->axes[4] * joy->axes[4]);
   joySpeed = joySpeedRaw;
   if (joySpeed > 1.0) joySpeed = 1.0;

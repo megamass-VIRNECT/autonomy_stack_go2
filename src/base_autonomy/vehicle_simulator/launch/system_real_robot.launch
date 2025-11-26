@@ -22,19 +22,19 @@
     <arg name="rviz" value="false"/>
   </include>
 
-  <!-- Disabled for manual control
+  <!-- Autonomous navigation with manual control override -->
   <include file="$(find-pkg-share local_planner)/launch/local_planner.launch" >
     <arg name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <arg name="sensorOffsetY" value="$(var sensorOffsetY)" />
     <arg name="cameraOffsetZ" value="$(var cameraOffsetZ)"/>
     <arg name="goalX" value="$(var vehicleX)"/>
     <arg name="goalY" value="$(var vehicleY)"/>
+    <arg name="autonomyMode" value="true"/>
+    <arg name="joyToSpeedDelay" value="2.0"/>
+    <arg name="is_real_robot" value="false"/>
   </include>
-  -->
 
-  <!-- Disabled for manual control
   <include file="$(find-pkg-share terrain_analysis)/launch/terrain_analysis.launch" />
-  -->
 
   <!-- <include file="$(find-pkg-share terrain_analysis_ext)/launch/terrain_analysis_ext.launch" >
     <arg name="checkTerrainConn" value="$(var checkTerrainConn)"/>
@@ -52,7 +52,6 @@
 
   <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubVehicle" args="0 0 0 0 0 0 /aft_mapped /sensor"/>
 
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="-0.3 0 0 0 0 0 /sensor /vehicle"/>
-
+  <!-- vehicleTransPublisher is now provided by local_planner.launch -->
 
 </launch>
