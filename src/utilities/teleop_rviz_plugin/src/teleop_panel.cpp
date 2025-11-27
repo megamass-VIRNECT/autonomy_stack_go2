@@ -12,10 +12,23 @@ TeleopPanel::TeleopPanel( QWidget* parent )
   , angular_velocity_( 0 )
   , mouse_pressed_( false )
   , mouse_pressed_sent_( false )
+  , control_enabled_( false )
 {
   node_ = rclcpp::Node::make_shared("teleop_panel_node");
 
   QVBoxLayout* layout = new QVBoxLayout;
+  
+  // Status Label
+  status_label_ = new QLabel("Current Mode: MANUAL", this);
+  status_label_->setAlignment(Qt::AlignCenter);
+  status_label_->setStyleSheet("font-weight: bold; font-size: 14px; color: black; background-color: #FFCCCC; border: 1px solid red; padding: 5px;");
+  layout->addWidget(status_label_);
+  
+  // Control Mode Button
+  control_mode_button_ = new QPushButton( "Change to AUTO Mode", this );
+  control_mode_button_->setStyleSheet("background-color: green; color: white; font-weight: bold; padding: 5px;");
+  layout->addWidget( control_mode_button_ );
+
   push_button_1_ = new QPushButton( "Resume Navigation to Goal", this );
   layout->addWidget( push_button_1_ );
   drive_widget_ = new DriveWidget;
@@ -25,12 +38,14 @@ TeleopPanel::TeleopPanel( QWidget* parent )
   QTimer* output_timer = new QTimer( this );
 
   connect( push_button_1_, SIGNAL( pressed() ), this, SLOT( pressButton1() ));
+  connect( control_mode_button_, SIGNAL( pressed() ), this, SLOT( toggleControlMode() ));
   connect( drive_widget_, SIGNAL( outputVelocity( float, float, bool )), this, SLOT( setVel( float, float, bool )));
   connect( output_timer, SIGNAL( timeout() ), this, SLOT( sendVel() ));
 
   output_timer->start( 100 );
 
   velocity_publisher_ = node_->create_publisher<sensor_msgs::msg::Joy>("/joy", 5);
+  control_mode_publisher_ = node_->create_publisher<std_msgs::msg::Bool>("/control_mode", 5);
 
   drive_widget_->setEnabled( true );
 }
@@ -65,6 +80,31 @@ void TeleopPanel::pressButton1()
     joy.header.stamp = node_->now();
     joy.header.frame_id = "teleop_panel";
     velocity_publisher_->publish( joy );
+  }
+}
+
+void TeleopPanel::toggleControlMode()
+{
+  control_enabled_ = !control_enabled_;
+  
+  std_msgs::msg::Bool msg;
+  msg.data = control_enabled_;
+  control_mode_publisher_->publish(msg);
+
+  if (control_enabled_) {
+    // Switched to AUTO
+    status_label_->setText("Current Mode: AUTO");
+    status_label_->setStyleSheet("font-weight: bold; font-size: 14px; color: black; background-color: #CCFFCC; border: 1px solid green; padding: 5px;");
+    
+    control_mode_button_->setText("Change to MANUAL Mode");
+    control_mode_button_->setStyleSheet("background-color: red; color: white; font-weight: bold; padding: 5px;");
+  } else {
+    // Switched to MANUAL
+    status_label_->setText("Current Mode: MANUAL");
+    status_label_->setStyleSheet("font-weight: bold; font-size: 14px; color: black; background-color: #FFCCCC; border: 1px solid red; padding: 5px;");
+    
+    control_mode_button_->setText("Change to AUTO Mode");
+    control_mode_button_->setStyleSheet("background-color: green; color: white; font-weight: bold; padding: 5px;");
   }
 }
 

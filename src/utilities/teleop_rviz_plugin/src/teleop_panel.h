@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QCheckBox>
 #include <QFileDialog>
+#include <QLabel>
 
 #include <std_msgs/msg/empty.hpp>
 #include <std_msgs/msg/bool.hpp>
@@ -39,6 +40,8 @@ public Q_SLOTS:
 
 protected Q_SLOTS:
   void pressButton1();
+
+  void toggleControlMode();
   void sendVel();
 
 protected:
@@ -46,11 +49,16 @@ protected:
 
   // ROS2 uses smart pointers for publishers and subscribers
   rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr velocity_publisher_;
+  rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr control_mode_publisher_;
 
   // Use shared pointer for the node
   rclcpp::Node::SharedPtr node_;
 
   QPushButton *push_button_1_;
+  QPushButton *control_mode_button_;
+  QLabel *status_label_;
+
+  bool control_enabled_;
 
   float linear_velocity_;
   float angular_velocity_;

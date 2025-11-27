@@ -31,7 +31,7 @@
     <arg name="goalY" value="$(var vehicleY)"/>
     <arg name="autonomyMode" value="true"/>
     <arg name="joyToSpeedDelay" value="2.0"/>
-    <arg name="is_real_robot" value="false"/>
+    <arg name="is_real_robot" value="true"/>
   </include>
 
   <include file="$(find-pkg-share terrain_analysis)/launch/terrain_analysis.launch" />
@@ -53,5 +53,7 @@
   <node pkg="tf2_ros" exec="static_transform_publisher" name="loamInterfaceTransPubVehicle" args="0 0 0 0 0 0 /aft_mapped /sensor"/>
 
   <!-- vehicleTransPublisher is now provided by local_planner.launch -->
+
+
 
 </launch>

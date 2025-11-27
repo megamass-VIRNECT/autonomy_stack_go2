@@ -14,6 +14,7 @@
 #include <std_msgs/msg/float32.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 #include <std_msgs/msg/int8.hpp>
+#include <std_msgs/msg/bool.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <sensor_msgs/msg/imu.h>
@@ -76,6 +77,7 @@ double autonomySpeed = 1.0;
 double joyToSpeedDelay = 2.0;
 double goalCloseDis = 1.0;
 bool is_real_robot = false;
+bool control_enabled = false; // Default to disabled (Manual Mode) for safety
 
 float joySpeed = 0;
 float joySpeedRaw = 0;
@@ -142,6 +144,12 @@ void odomHandler(const nav_msgs::msg::Odometry::ConstSharedPtr odomIn)
 
 void pathHandler(const nav_msgs::msg::Path::ConstSharedPtr pathIn)
 {
+  if (!control_enabled) {
+    // Ignore incoming plans while manual mode is active to prevent stale paths
+    // from being executed when control is re-enabled.
+    return;
+  }
+
   int pathSize = pathIn->poses.size();
   path.poses.resize(pathSize);
   for (int i = 0; i < pathSize; i++) {
@@ -212,6 +220,22 @@ void speedHandler(const std_msgs::msg::Float32::ConstSharedPtr speed)
 void stopHandler(const std_msgs::msg::Int8::ConstSharedPtr stop)
 {
   safetyStop = stop->data;
+}
+
+void controlModeHandler(const std_msgs::msg::Bool::ConstSharedPtr msg)
+{
+  control_enabled = msg->data;
+  if (control_enabled) {
+    RCLCPP_INFO(nh->get_logger(), "Control Mode: AUTO (Commands Enabled)");
+  } else {
+    RCLCPP_INFO(nh->get_logger(), "Control Mode: MANUAL (Commands Disabled)");
+    // Reset path following state to prevent unwanted movement when switching back to Auto
+    pathInit = false;
+    path.poses.clear();
+    vehicleSpeed = 0;
+    vehicleYawRate = 0;
+    pathPointID = 0;
+  }
 }
 
 int main(int argc, char** argv)
@@ -294,6 +318,8 @@ int main(int argc, char** argv)
   auto subSpeed = nh->create_subscription<std_msgs::msg::Float32>("/speed", 5, speedHandler);
 
   auto subStop = nh->create_subscription<std_msgs::msg::Int8>("/stop", 5, stopHandler);
+
+  auto subControlMode = nh->create_subscription<std_msgs::msg::Bool>("/control_mode", 5, controlModeHandler);
 
   auto pubSpeed = nh->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 5);
 
@@ -427,11 +453,14 @@ int main(int argc, char** argv)
           cmd_vel.twist.angular.z = maxYawRate * PI / 180.0 * joyManualYaw;
         }
 
-        pubSpeed->publish(cmd_vel);
+        if (control_enabled) {
+          pubSpeed->publish(cmd_vel);
+        }
 
         pubSkipCount = pubSkipNum;
 
-        if (is_real_robot)
+        // Only publish to /api/sport/request in autonomous mode to avoid conflict with Unitree controller
+        if (is_real_robot && !manualMode && control_enabled)
         {
           if (cmd_vel.twist.linear.x == 0 && cmd_vel.twist.linear.y == 0 && cmd_vel.twist.angular.z == 0){
           	sport_req.StopMove(req);

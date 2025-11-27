@@ -390,6 +390,7 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /navigation_boundary
       Value: true
+
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
