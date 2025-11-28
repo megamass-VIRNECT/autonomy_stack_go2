@@ -2,6 +2,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import PointCloud2, PointField
 from geometry_msgs.msg import TransformStamped, Vector3
@@ -19,8 +20,17 @@ import os
 class Repuber(Node):
     def __init__(self):
         super().__init__('sensor_transformer')
-        self.imu_sub = self.create_subscription(Imu, '/utlidar/imu', self.imu_callback, 50)
-        self.cloud_sub = self.create_subscription(PointCloud2, '/utlidar/cloud', self.cloud_callback, 50)
+
+        # QoS profile matching Unitree robot's RELIABLE publisher
+        qos_profile = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.VOLATILE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=50
+        )
+
+        self.imu_sub = self.create_subscription(Imu, '/utlidar/imu', self.imu_callback, qos_profile)
+        self.cloud_sub = self.create_subscription(PointCloud2, '/utlidar/cloud', self.cloud_callback, qos_profile)
         
         self.imu_raw_pub = self.create_publisher(Imu, '/utlidar/transformed_raw_imu', 50)
         self.imu_pub = self.create_publisher(Imu, '/utlidar/transformed_imu', 50)
@@ -224,14 +234,7 @@ class Repuber(Node):
         
         self.imu_raw_pub.publish(transformed_imu)
         
-        transformed_imu.orientation.x = 0.0
-        transformed_imu.orientation.y = 0.0
-        transformed_imu.orientation.z = 0.0
-        transformed_imu.orientation.w = 1.0
-        
-        transformed_imu.linear_acceleration.x = 0.0
-        transformed_imu.linear_acceleration.y = 0.0
-        transformed_imu.linear_acceleration.z = 0.0
+
         
         self.imu_pub.publish(transformed_imu)
 
