@@ -806,6 +806,15 @@ void FARMaster::WaypointCallBack(const geometry_msgs::msg::PointStamped::SharedP
     if (FARUtil::IsDebug) RCLCPP_WARN(nh_->get_logger(),"FARMaster: wait for v-graph to init before sending any goals");
     return;
   }
+
+  // Ignore old/latched goals
+  double goal_time = rclcpp::Time(route_goal->header.stamp).seconds();
+  double current_time = nh_->now().seconds();
+  if (std::abs(goal_time - current_time) > 2.0) {
+    RCLCPP_WARN(nh_->get_logger(), "FARMaster: Ignoring a stale goal received with timestamp %f while current time is %f.", goal_time, current_time);
+    return;
+  }
+
   Point3D goal_p(route_goal->point.x, route_goal->point.y, route_goal->point.z);
   const std::string goal_frame = route_goal->header.frame_id;
   if (!FARUtil::IsSameFrameID(goal_frame, master_params_.world_frame)) {

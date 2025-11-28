@@ -7,15 +7,18 @@
 #include "unitree_go/msg/sport_mode_state.hpp"
 #include <sensor_msgs/msg/joy.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <std_msgs/msg/bool.hpp> // Added for control_mode topic
 
 // rclcpp::Subscription<unitree_go::msg::SportModeState>::SharedPtr state_suber;
 // rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr vel_cmd_suber;
 rclcpp::Publisher<unitree_api::msg::Request>::SharedPtr req_puber;
 rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_suber;
+rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr control_mode_suber; // Added control_mode subscriber
 
 unitree_api::msg::Request req;
 SportClient sport_req;
 bool new_cmd = false;
+bool manual_control_enabled_ = true; // Added flag for manual control, true by default
 
 float vx;
 float vyaw;
@@ -33,6 +36,13 @@ float joySpeedLateral = 0;
 float PI = 3.141592653589397;
 float maxSpeedYaw = 1.4;
 float maxSpeedLateral = 0.5;
+
+void controlModeCallback(const std_msgs::msg::Bool::SharedPtr msg)
+{
+  manual_control_enabled_ = !msg->data; // If msg->data is true (AUTO), manual_control_enabled_ becomes false. If msg->data is false (MANUAL), manual_control_enabled_ becomes true.
+  RCLCPP_INFO(nh->get_logger(), "Control mode received: %s. Manual control enabled: %s",
+              msg->data ? "AUTO" : "MANUAL", manual_control_enabled_ ? "true" : "false");
+}
 
 // void vel_cmd_callback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 // {
@@ -78,6 +88,7 @@ int main(int argc, char **argv)
 
     joy_suber = nh->create_subscription<sensor_msgs::msg::Joy>("/joy", 5, joystickHandler);
     req_puber = nh->create_publisher<unitree_api::msg::Request>("/api/sport/request", 10);
+    control_mode_suber = nh->create_subscription<std_msgs::msg::Bool>("/control_mode", 10, controlModeCallback); // Initialize control_mode subscriber
 
     rclcpp::Rate rate(100); // Set the frequency of the timer callback
     bool status = rclcpp::ok();
@@ -88,8 +99,14 @@ int main(int argc, char **argv)
         vy = joySpeedLateral;
         std::cout << "vx: " << vx << ",vy: " << vy << ", vyaw:" << vyaw << std::endl;
         
-        sport_req.Move(req, vx, vy, vyaw);
-        req_puber->publish(req);
+        if (manual_control_enabled_) {
+            sport_req.Move(req, vx, vy, vyaw);
+            req_puber->publish(req);
+        } else {
+            // If manual control is disabled, send a stop command
+            sport_req.Move(req, 0, 0, 0);
+            req_puber->publish(req);
+        }
         
         //if (new_cmd)
         //{
